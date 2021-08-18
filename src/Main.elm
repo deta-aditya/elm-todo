@@ -15,11 +15,6 @@ main =
     , subscriptions = subscriptions
     }
 
-type Msg 
-  = NoOp
-  | InputTodo String
-  | AddTodo
-
 type alias Model = 
   { todos: List String
   , input: String }
@@ -34,6 +29,10 @@ init _ =
       ""
   , Cmd.none)
 
+type Msg 
+  = NoOp
+  | InputTodo String
+  | AddTodo
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
