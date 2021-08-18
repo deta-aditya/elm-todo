@@ -2,9 +2,9 @@ module Main exposing (..)
 
 import Browser
 import Html exposing (..)
-import Html.Attributes exposing (type_)
-import Html.Attributes exposing (name)
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (..)
+import Html.Events exposing (onInput)
+import Html.Events exposing (onClick)
 
 main : Program () Model Msg
 main =
@@ -17,37 +17,56 @@ main =
 
 type Msg 
   = NoOp
+  | InputTodo String
+  | AddTodo
 
-type alias Model = Int
+type alias Model = 
+  { todos: List String
+  , input: String }
 
 init : () -> (Model, Cmd Msg)
 init _ =
-  (0, Cmd.none)
+  ( Model 
+      [ "Experiment with FCIS"
+      , "Create a full webapp with Elm"
+      , "Finish reading Sapiens book"
+      ]
+      ""
+  , Cmd.none)
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
-update _ model =
-  (model, Cmd.none)
+update msg model =
+  case msg of
+    NoOp ->
+      (model, Cmd.none)
 
+    InputTodo value ->
+      ( { model | input = value }, Cmd.none )
+
+    AddTodo ->
+      ( Model (model.input :: model.todos) "", Cmd.none )
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
   Sub.none
 
 view : Model -> Browser.Document Msg
-view _ =
+view model =
   { title = "Todo List"
   , body = 
     [ div [ class "container" ] 
       [ h1 [] [ text "Todo List!" ]
       , div [ class "form" ] 
-        [ input [ type_ "text", name "input" ] [] 
-        , button [] [ text "Add" ] 
+        [ input 
+          [ placeholder "Add something to do..."
+          , type_ "text"
+          , name "input" 
+          , value model.input
+          , onInput InputTodo ] [] 
+        , button [ onClick AddTodo ] [ text "Add" ] 
         ]
-      , ul [] 
-        [ viewTodo "Experiment with FCIS" 
-        , viewTodo "Create a full webapp with Elm"
-        ] 
+      , ul [] (List.map viewTodo model.todos)
       ]
     ]
   }
