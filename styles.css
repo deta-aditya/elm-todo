@@ -45,6 +45,11 @@ body {
   cursor: pointer;
 }
 
+.form button:disabled {
+  cursor: auto;
+  opacity: 0.8;
+}
+
 .form button:hover {
   opacity: 0.8;
 }
@@ -84,8 +89,8 @@ ul li:hover .actions {
 
 ul li .actions button {
   font-size: 18px;
+  width: 38px;
   padding: 10px 10px;
-  margin-left: 10px;
   border: none;
   background-color: transparent;
   cursor: pointer;
@@ -102,4 +107,15 @@ ul li .actions .done {
 
 ul li .actions .delete {
   color: red;
+}
+
+ul li .actions .edit {
+  color: rgb(8, 93, 204);
+}
+
+ul li.editable input[type="text"] {
+  font-size: 16px;
+  border: none;
+  width: 100%;
+  background-color: none;
 }

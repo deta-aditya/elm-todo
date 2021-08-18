@@ -10536,9 +10536,9 @@ var $elm$core$Basics$never = function (_v0) {
 	}
 };
 var $elm$browser$Browser$document = _Browser_document;
-var $author$project$Main$Model = F2(
-	function (todos, input) {
-		return {input: input, todos: todos};
+var $author$project$Main$Model = F3(
+	function (todos, input, edit) {
+		return {edit: edit, input: input, todos: todos};
 	});
 var $author$project$Main$Todo = F3(
 	function (id, text, done) {
@@ -10546,7 +10546,7 @@ var $author$project$Main$Todo = F3(
 	});
 var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
-		A2(
+		A3(
 			$author$project$Main$Model,
 			_List_fromArray(
 				[
@@ -10554,7 +10554,8 @@ var $author$project$Main$init = function (_v0) {
 					A3($author$project$Main$Todo, 1, 'Create a full webapp with Elm', false),
 					A3($author$project$Main$Todo, 2, 'Finish reading Sapiens book', false)
 				]),
-			''),
+			'',
+			$elm$core$Maybe$Nothing),
 		$elm$core$Platform$Cmd$none);
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
@@ -10562,6 +10563,10 @@ var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
 var $author$project$Main$subscriptions = function (_v0) {
 	return $elm$core$Platform$Sub$none;
 };
+var $author$project$Main$EditPayload = F2(
+	function (todo, input) {
+		return {input: input, todo: todo};
+	});
 var $elm$core$List$filter = F2(
 	function (isGood, list) {
 		return A3(
@@ -10572,6 +10577,16 @@ var $elm$core$List$filter = F2(
 				}),
 			_List_Nil,
 			list);
+	});
+var $elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return $elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
 	});
 var $elm$core$Basics$min = F2(
 	function (x, y) {
@@ -10609,7 +10624,9 @@ var $author$project$Main$update = F2(
 					A2($author$project$Main$newTodo, model.todos, model.input),
 					model.todos);
 				return _Utils_Tuple2(
-					{input: '', todos: newTodos},
+					_Utils_update(
+						model,
+						{input: '', todos: newTodos}),
 					$elm$core$Platform$Cmd$none);
 			case 'DeleteTodo':
 				var id = msg.a;
@@ -10623,9 +10640,11 @@ var $author$project$Main$update = F2(
 						$elm$core$Basics$neq(id)),
 					model.todos);
 				return _Utils_Tuple2(
-					{input: '', todos: newTodos},
+					_Utils_update(
+						model,
+						{input: '', todos: newTodos}),
 					$elm$core$Platform$Cmd$none);
-			default:
+			case 'DoneTodo':
 				var id = msg.a;
 				var newTodos = A2(
 					$elm$core$List$map,
@@ -10636,7 +10655,73 @@ var $author$project$Main$update = F2(
 					},
 					model.todos);
 				return _Utils_Tuple2(
-					{input: '', todos: newTodos},
+					_Utils_update(
+						model,
+						{input: '', todos: newTodos}),
+					$elm$core$Platform$Cmd$none);
+			case 'RequestEdit':
+				var todo = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							edit: $elm$core$Maybe$Just(
+								A2($author$project$Main$EditPayload, todo, todo.text))
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 'InputEditTodo':
+				var value = msg.a;
+				var newEdit = A2(
+					$elm$core$Maybe$map,
+					function (old) {
+						return _Utils_update(
+							old,
+							{input: value});
+					},
+					model.edit);
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{edit: newEdit}),
+					$elm$core$Platform$Cmd$none);
+			case 'FinishEdit':
+				var editValue = A2(
+					$elm$core$Basics$composeR,
+					$elm$core$Maybe$map(
+						function ($) {
+							return $.input;
+						}),
+					$elm$core$Maybe$withDefault(''))(model.edit);
+				var editID = A2(
+					$elm$core$Basics$composeR,
+					$elm$core$Maybe$map(
+						A2(
+							$elm$core$Basics$composeR,
+							function ($) {
+								return $.todo;
+							},
+							function ($) {
+								return $.id;
+							})),
+					$elm$core$Maybe$withDefault(-1))(model.edit);
+				var newTodos = A2(
+					$elm$core$List$map,
+					function (todo) {
+						return _Utils_eq(todo.id, editID) ? _Utils_update(
+							todo,
+							{text: editValue}) : todo;
+					},
+					model.todos);
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{edit: $elm$core$Maybe$Nothing, todos: newTodos}),
+					$elm$core$Platform$Cmd$none);
+			default:
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{edit: $elm$core$Maybe$Nothing}),
 					$elm$core$Platform$Cmd$none);
 		}
 	});
@@ -10644,11 +10729,83 @@ var $author$project$Main$AddTodo = {$: 'AddTodo'};
 var $author$project$Main$InputTodo = function (a) {
 	return {$: 'InputTodo', a: a};
 };
+var $elm$json$Json$Encode$bool = _Json_wrap;
+var $elm$html$Html$Attributes$boolProperty = F2(
+	function (key, bool) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			$elm$json$Json$Encode$bool(bool));
+	});
+var $elm$html$Html$Attributes$disabled = $elm$html$Html$Attributes$boolProperty('disabled');
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
+var $author$project$Main$isEditMode = function (model) {
+	var _v0 = model.edit;
+	if (_v0.$ === 'Just') {
+		return true;
+	} else {
+		return false;
+	}
+};
 var $elm$html$Html$Attributes$name = $elm$html$Html$Attributes$stringProperty('name');
 var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
-var $author$project$Main$DoneTodo = function (a) {
-	return {$: 'DoneTodo', a: a};
+var $author$project$Main$CancelEdit = {$: 'CancelEdit'};
+var $author$project$Main$FinishEdit = {$: 'FinishEdit'};
+var $author$project$Main$InputEditTodo = function (a) {
+	return {$: 'InputEditTodo', a: a};
+};
+var $author$project$Main$viewEditTodo = function (payload) {
+	return A2(
+		$elm$html$Html$li,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('editable')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$input,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$placeholder('Add something to do...'),
+						$elm$html$Html$Attributes$type_('text'),
+						$elm$html$Html$Attributes$name('input'),
+						$elm$html$Html$Attributes$value(payload.input),
+						$elm$html$Html$Events$onInput($author$project$Main$InputEditTodo)
+					]),
+				_List_Nil),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('actions')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('done'),
+								$elm$html$Html$Events$onClick($author$project$Main$FinishEdit)
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('✔')
+							])),
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('delete'),
+								$elm$html$Html$Events$onClick($author$project$Main$CancelEdit)
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('✖')
+							]))
+					]))
+			]));
 };
 var $author$project$Main$DeleteTodo = function (a) {
 	return {$: 'DeleteTodo', a: a};
@@ -10667,56 +10824,79 @@ var $author$project$Main$viewDeleteTodo = function (todo) {
 				$elm$html$Html$text('✖')
 			]));
 };
-var $author$project$Main$viewTodo = function (todo) {
-	return todo.done ? A2(
-		$elm$html$Html$li,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('done')
-			]),
-		_List_fromArray(
-			[
-				$elm$html$Html$text(todo.text),
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('actions')
-					]),
-				_List_fromArray(
-					[
-						$author$project$Main$viewDeleteTodo(todo)
-					]))
-			])) : A2(
-		$elm$html$Html$li,
-		_List_Nil,
-		_List_fromArray(
-			[
-				$elm$html$Html$text(todo.text),
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('actions')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$button,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('done'),
-								$elm$html$Html$Events$onClick(
-								$author$project$Main$DoneTodo(todo.id))
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('✔')
-							])),
-						$author$project$Main$viewDeleteTodo(todo)
-					]))
-			]));
+var $author$project$Main$DoneTodo = function (a) {
+	return {$: 'DoneTodo', a: a};
 };
+var $author$project$Main$RequestEdit = function (a) {
+	return {$: 'RequestEdit', a: a};
+};
+var $author$project$Main$viewRegularActions = F2(
+	function (model, todo) {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('actions')
+				]),
+			$author$project$Main$isEditMode(model) ? _List_Nil : _List_fromArray(
+				[
+					A2(
+					$elm$html$Html$button,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('edit'),
+							$elm$html$Html$Events$onClick(
+							$author$project$Main$RequestEdit(todo))
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('✎')
+						])),
+					A2(
+					$elm$html$Html$button,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('done'),
+							$elm$html$Html$Events$onClick(
+							$author$project$Main$DoneTodo(todo.id))
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('✔')
+						])),
+					$author$project$Main$viewDeleteTodo(todo)
+				]));
+	});
+var $author$project$Main$viewTodo = F2(
+	function (model, todo) {
+		return todo.done ? A2(
+			$elm$html$Html$li,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('done')
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text(todo.text),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('actions')
+						]),
+					_List_fromArray(
+						[
+							$author$project$Main$viewDeleteTodo(todo)
+						]))
+				])) : A2(
+			$elm$html$Html$li,
+			_List_Nil,
+			_List_fromArray(
+				[
+					$elm$html$Html$text(todo.text),
+					A2($author$project$Main$viewRegularActions, model, todo)
+				]));
+	});
 var $author$project$Main$view = function (model) {
 	return {
 		body: _List_fromArray(
@@ -10752,6 +10932,8 @@ var $author$project$Main$view = function (model) {
 										$elm$html$Html$Attributes$type_('text'),
 										$elm$html$Html$Attributes$name('input'),
 										$elm$html$Html$Attributes$value(model.input),
+										$elm$html$Html$Attributes$disabled(
+										$author$project$Main$isEditMode(model)),
 										$elm$html$Html$Events$onInput($author$project$Main$InputTodo)
 									]),
 								_List_Nil),
@@ -10759,7 +10941,9 @@ var $author$project$Main$view = function (model) {
 								$elm$html$Html$button,
 								_List_fromArray(
 									[
-										$elm$html$Html$Events$onClick($author$project$Main$AddTodo)
+										$elm$html$Html$Events$onClick($author$project$Main$AddTodo),
+										$elm$html$Html$Attributes$disabled(
+										$author$project$Main$isEditMode(model))
 									]),
 								_List_fromArray(
 									[
@@ -10769,7 +10953,18 @@ var $author$project$Main$view = function (model) {
 						A2(
 						$elm$html$Html$ul,
 						_List_Nil,
-						A2($elm$core$List$map, $author$project$Main$viewTodo, model.todos))
+						A2(
+							$elm$core$List$map,
+							function (todo) {
+								var _v0 = model.edit;
+								if (_v0.$ === 'Just') {
+									var payload = _v0.a;
+									return _Utils_eq(todo, payload.todo) ? $author$project$Main$viewEditTodo(payload) : A2($author$project$Main$viewTodo, model, todo);
+								} else {
+									return A2($author$project$Main$viewTodo, model, todo);
+								}
+							},
+							model.todos))
 					]))
 			]),
 		title: 'Todo List'
@@ -10778,4 +10973,4 @@ var $author$project$Main$view = function (model) {
 var $author$project$Main$main = $elm$browser$Browser$document(
 	{init: $author$project$Main$init, subscriptions: $author$project$Main$subscriptions, update: $author$project$Main$update, view: $author$project$Main$view});
 _Platform_export({'Main':{'init':$author$project$Main$main(
-	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"Main.Msg","aliases":{"Main.ID":{"args":[],"type":"Basics.Int"}},"unions":{"Main.Msg":{"args":[],"tags":{"NoOp":[],"InputTodo":["String.String"],"AddTodo":[],"DeleteTodo":["Main.ID"],"DoneTodo":["Main.ID"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"String.String":{"args":[],"tags":{"String":[]}}}}})}});}(this));
+	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"Main.Msg","aliases":{"Main.ID":{"args":[],"type":"Basics.Int"},"Main.Todo":{"args":[],"type":"{ id : Main.ID, text : String.String, done : Basics.Bool }"}},"unions":{"Main.Msg":{"args":[],"tags":{"NoOp":[],"InputTodo":["String.String"],"AddTodo":[],"DeleteTodo":["Main.ID"],"DoneTodo":["Main.ID"],"RequestEdit":["Main.Todo"],"InputEditTodo":["String.String"],"FinishEdit":[],"CancelEdit":[]}},"Basics.Bool":{"args":[],"tags":{"True":[],"False":[]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"String.String":{"args":[],"tags":{"String":[]}}}}})}});}(this));
