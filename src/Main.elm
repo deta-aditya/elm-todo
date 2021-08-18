@@ -2,7 +2,7 @@ module Main exposing (..)
 
 import Browser
 import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html.Attributes exposing (class, placeholder, type_, name, value)
 import Html.Events exposing (onInput)
 import Html.Events exposing (onClick)
 
@@ -16,15 +16,30 @@ main =
     }
 
 type alias Model = 
-  { todos: List String
-  , input: String }
+  { todos: List Todo
+  , input: String 
+  }
+
+type alias Todo =
+  { id: ID
+  , text: String
+  }
+
+newTodo : List Todo -> String -> Todo
+newTodo todos text =
+  let
+    biggestID = List.foldl min 0 <| List.map .id <| todos
+  in
+    Todo biggestID text
+
+type alias ID = Int
 
 init : () -> (Model, Cmd Msg)
 init _ =
   ( Model 
-      [ "Experiment with FCIS"
-      , "Create a full webapp with Elm"
-      , "Finish reading Sapiens book"
+      [ Todo 0 "Experiment with FCIS"
+      , Todo 1 "Create a full webapp with Elm"
+      , Todo 2 "Finish reading Sapiens book"
       ]
       ""
   , Cmd.none)
@@ -33,6 +48,7 @@ type Msg
   = NoOp
   | InputTodo String
   | AddTodo
+  | DeleteTodo ID
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -44,7 +60,17 @@ update msg model =
       ( { model | input = value }, Cmd.none )
 
     AddTodo ->
-      ( Model (model.input :: model.todos) "", Cmd.none )
+      let
+        newTodos = (newTodo model.todos model.input) :: model.todos
+      in
+        ( { todos = newTodos, input = "" }, Cmd.none )
+
+    DeleteTodo id ->
+      let
+        newTodos = List.filter (.id >> (/=) id) model.todos
+      in
+        ( { todos = newTodos, input = "" }, Cmd.none )
+      
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
@@ -70,12 +96,12 @@ view model =
     ]
   }
 
-viewTodo : String -> Html Msg
-viewTodo txt =
+viewTodo : Todo -> Html Msg
+viewTodo todo =
   li [] 
-    [ text txt
+    [ text todo.text
     , div [ class "actions" ] 
       [ button [ class "done" ] [ text "✔" ] 
-      , button [ class "delete" ] [ text "✖" ]
+      , button [ class "delete", onClick (DeleteTodo todo.id) ] [ text "✖" ]
       ]
     ]

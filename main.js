@@ -10540,12 +10540,20 @@ var $author$project$Main$Model = F2(
 	function (todos, input) {
 		return {input: input, todos: todos};
 	});
+var $author$project$Main$Todo = F2(
+	function (id, text) {
+		return {id: id, text: text};
+	});
 var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
 		A2(
 			$author$project$Main$Model,
 			_List_fromArray(
-				['Experiment with FCIS', 'Create a full webapp with Elm', 'Finish reading Sapiens book']),
+				[
+					A2($author$project$Main$Todo, 0, 'Experiment with FCIS'),
+					A2($author$project$Main$Todo, 1, 'Create a full webapp with Elm'),
+					A2($author$project$Main$Todo, 2, 'Finish reading Sapiens book')
+				]),
 			''),
 		$elm$core$Platform$Cmd$none);
 };
@@ -10554,6 +10562,35 @@ var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
 var $author$project$Main$subscriptions = function (_v0) {
 	return $elm$core$Platform$Sub$none;
 };
+var $elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			$elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
+var $elm$core$Basics$min = F2(
+	function (x, y) {
+		return (_Utils_cmp(x, y) < 0) ? x : y;
+	});
+var $author$project$Main$newTodo = F2(
+	function (todos, text) {
+		var biggestID = A3(
+			$elm$core$List$foldl,
+			$elm$core$Basics$min,
+			0,
+			A2(
+				$elm$core$List$map,
+				function ($) {
+					return $.id;
+				},
+				todos));
+		return A2($author$project$Main$Todo, biggestID, text);
+	});
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
@@ -10566,12 +10603,27 @@ var $author$project$Main$update = F2(
 						model,
 						{input: value}),
 					$elm$core$Platform$Cmd$none);
-			default:
+			case 'AddTodo':
+				var newTodos = A2(
+					$elm$core$List$cons,
+					A2($author$project$Main$newTodo, model.todos, model.input),
+					model.todos);
 				return _Utils_Tuple2(
+					{input: '', todos: newTodos},
+					$elm$core$Platform$Cmd$none);
+			default:
+				var id = msg.a;
+				var newTodos = A2(
+					$elm$core$List$filter,
 					A2(
-						$author$project$Main$Model,
-						A2($elm$core$List$cons, model.input, model.todos),
-						''),
+						$elm$core$Basics$composeR,
+						function ($) {
+							return $.id;
+						},
+						$elm$core$Basics$neq(id)),
+					model.todos);
+				return _Utils_Tuple2(
+					{input: '', todos: newTodos},
 					$elm$core$Platform$Cmd$none);
 		}
 	});
@@ -10582,13 +10634,16 @@ var $author$project$Main$InputTodo = function (a) {
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$html$Html$Attributes$name = $elm$html$Html$Attributes$stringProperty('name');
 var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
-var $author$project$Main$viewTodo = function (txt) {
+var $author$project$Main$DeleteTodo = function (a) {
+	return {$: 'DeleteTodo', a: a};
+};
+var $author$project$Main$viewTodo = function (todo) {
 	return A2(
 		$elm$html$Html$li,
 		_List_Nil,
 		_List_fromArray(
 			[
-				$elm$html$Html$text(txt),
+				$elm$html$Html$text(todo.text),
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(
@@ -10611,7 +10666,9 @@ var $author$project$Main$viewTodo = function (txt) {
 						$elm$html$Html$button,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('delete')
+								$elm$html$Html$Attributes$class('delete'),
+								$elm$html$Html$Events$onClick(
+								$author$project$Main$DeleteTodo(todo.id))
 							]),
 						_List_fromArray(
 							[
@@ -10681,4 +10738,4 @@ var $author$project$Main$view = function (model) {
 var $author$project$Main$main = $elm$browser$Browser$document(
 	{init: $author$project$Main$init, subscriptions: $author$project$Main$subscriptions, update: $author$project$Main$update, view: $author$project$Main$view});
 _Platform_export({'Main':{'init':$author$project$Main$main(
-	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"Main.Msg","aliases":{},"unions":{"Main.Msg":{"args":[],"tags":{"NoOp":[],"InputTodo":["String.String"],"AddTodo":[]}},"String.String":{"args":[],"tags":{"String":[]}}}}})}});}(this));
+	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"Main.Msg","aliases":{"Main.ID":{"args":[],"type":"Basics.Int"}},"unions":{"Main.Msg":{"args":[],"tags":{"NoOp":[],"InputTodo":["String.String"],"AddTodo":[],"DeleteTodo":["Main.ID"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"String.String":{"args":[],"tags":{"String":[]}}}}})}});}(this));
