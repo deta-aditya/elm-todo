@@ -36,9 +36,9 @@ type alias ID = Int
 newTodo : List Todo -> String -> Todo
 newTodo todos text =
   let
-    biggestID = List.foldl min 0 <| List.map .id <| todos
+    biggestID = List.foldl max 0 <| List.map .id <| todos
   in
-    Todo biggestID text False
+    Todo (biggestID + 1) text False
 
 init : () -> (Model, Cmd Msg)
 init _ =
@@ -73,7 +73,9 @@ update msg model =
 
     AddTodo ->
       let
-        newTodos = (newTodo model.todos model.input) :: model.todos
+        newTodos = case model.input of 
+          "" -> model.todos
+          _ -> (newTodo model.todos model.input) :: model.todos
       in
         ( { model | todos = newTodos, input = "" }, Cmd.none )
 
@@ -192,7 +194,8 @@ viewEditTodo payload =
       ] [] 
     , div [ class "actions" ]
       [ button [ class "done", onClick FinishEdit ] [ text "✔" ]
-      , button [ class "delete", onClick CancelEdit ] [ text "✖" ] ]
+      , button [ class "delete", onClick CancelEdit ] [ text "✖" ] 
+      ]
     ]
 
 viewDeleteTodo : Todo -> Html Msg

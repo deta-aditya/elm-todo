@@ -10588,15 +10588,11 @@ var $elm$core$Maybe$map = F2(
 			return $elm$core$Maybe$Nothing;
 		}
 	});
-var $elm$core$Basics$min = F2(
-	function (x, y) {
-		return (_Utils_cmp(x, y) < 0) ? x : y;
-	});
 var $author$project$Main$newTodo = F2(
 	function (todos, text) {
 		var biggestID = A3(
 			$elm$core$List$foldl,
-			$elm$core$Basics$min,
+			$elm$core$Basics$max,
 			0,
 			A2(
 				$elm$core$List$map,
@@ -10604,7 +10600,7 @@ var $author$project$Main$newTodo = F2(
 					return $.id;
 				},
 				todos));
-		return A3($author$project$Main$Todo, biggestID, text, false);
+		return A3($author$project$Main$Todo, biggestID + 1, text, false);
 	});
 var $author$project$Main$update = F2(
 	function (msg, model) {
@@ -10619,10 +10615,17 @@ var $author$project$Main$update = F2(
 						{input: value}),
 					$elm$core$Platform$Cmd$none);
 			case 'AddTodo':
-				var newTodos = A2(
-					$elm$core$List$cons,
-					A2($author$project$Main$newTodo, model.todos, model.input),
-					model.todos);
+				var newTodos = function () {
+					var _v1 = model.input;
+					if (_v1 === '') {
+						return model.todos;
+					} else {
+						return A2(
+							$elm$core$List$cons,
+							A2($author$project$Main$newTodo, model.todos, model.input),
+							model.todos);
+					}
+				}();
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
