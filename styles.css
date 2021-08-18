@@ -63,6 +63,10 @@ ul li {
   border-radius: 5px;
 }
 
+ul li.done {
+  text-decoration: line-through;
+}
+
 ul li:last-child {
   margin-bottom: 0;
 }

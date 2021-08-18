@@ -10540,9 +10540,9 @@ var $author$project$Main$Model = F2(
 	function (todos, input) {
 		return {input: input, todos: todos};
 	});
-var $author$project$Main$Todo = F2(
-	function (id, text) {
-		return {id: id, text: text};
+var $author$project$Main$Todo = F3(
+	function (id, text, done) {
+		return {done: done, id: id, text: text};
 	});
 var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
@@ -10550,9 +10550,9 @@ var $author$project$Main$init = function (_v0) {
 			$author$project$Main$Model,
 			_List_fromArray(
 				[
-					A2($author$project$Main$Todo, 0, 'Experiment with FCIS'),
-					A2($author$project$Main$Todo, 1, 'Create a full webapp with Elm'),
-					A2($author$project$Main$Todo, 2, 'Finish reading Sapiens book')
+					A3($author$project$Main$Todo, 0, 'Experiment with FCIS', false),
+					A3($author$project$Main$Todo, 1, 'Create a full webapp with Elm', false),
+					A3($author$project$Main$Todo, 2, 'Finish reading Sapiens book', false)
 				]),
 			''),
 		$elm$core$Platform$Cmd$none);
@@ -10589,7 +10589,7 @@ var $author$project$Main$newTodo = F2(
 					return $.id;
 				},
 				todos));
-		return A2($author$project$Main$Todo, biggestID, text);
+		return A3($author$project$Main$Todo, biggestID, text, false);
 	});
 var $author$project$Main$update = F2(
 	function (msg, model) {
@@ -10611,7 +10611,7 @@ var $author$project$Main$update = F2(
 				return _Utils_Tuple2(
 					{input: '', todos: newTodos},
 					$elm$core$Platform$Cmd$none);
-			default:
+			case 'DeleteTodo':
 				var id = msg.a;
 				var newTodos = A2(
 					$elm$core$List$filter,
@@ -10625,6 +10625,19 @@ var $author$project$Main$update = F2(
 				return _Utils_Tuple2(
 					{input: '', todos: newTodos},
 					$elm$core$Platform$Cmd$none);
+			default:
+				var id = msg.a;
+				var newTodos = A2(
+					$elm$core$List$map,
+					function (todo) {
+						return _Utils_eq(todo.id, id) ? _Utils_update(
+							todo,
+							{done: true}) : todo;
+					},
+					model.todos);
+				return _Utils_Tuple2(
+					{input: '', todos: newTodos},
+					$elm$core$Platform$Cmd$none);
 		}
 	});
 var $author$project$Main$AddTodo = {$: 'AddTodo'};
@@ -10634,11 +10647,47 @@ var $author$project$Main$InputTodo = function (a) {
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$html$Html$Attributes$name = $elm$html$Html$Attributes$stringProperty('name');
 var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
+var $author$project$Main$DoneTodo = function (a) {
+	return {$: 'DoneTodo', a: a};
+};
 var $author$project$Main$DeleteTodo = function (a) {
 	return {$: 'DeleteTodo', a: a};
 };
-var $author$project$Main$viewTodo = function (todo) {
+var $author$project$Main$viewDeleteTodo = function (todo) {
 	return A2(
+		$elm$html$Html$button,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('delete'),
+				$elm$html$Html$Events$onClick(
+				$author$project$Main$DeleteTodo(todo.id))
+			]),
+		_List_fromArray(
+			[
+				$elm$html$Html$text('✖')
+			]));
+};
+var $author$project$Main$viewTodo = function (todo) {
+	return todo.done ? A2(
+		$elm$html$Html$li,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('done')
+			]),
+		_List_fromArray(
+			[
+				$elm$html$Html$text(todo.text),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('actions')
+					]),
+				_List_fromArray(
+					[
+						$author$project$Main$viewDeleteTodo(todo)
+					]))
+			])) : A2(
 		$elm$html$Html$li,
 		_List_Nil,
 		_List_fromArray(
@@ -10656,24 +10705,15 @@ var $author$project$Main$viewTodo = function (todo) {
 						$elm$html$Html$button,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('done')
+								$elm$html$Html$Attributes$class('done'),
+								$elm$html$Html$Events$onClick(
+								$author$project$Main$DoneTodo(todo.id))
 							]),
 						_List_fromArray(
 							[
 								$elm$html$Html$text('✔')
 							])),
-						A2(
-						$elm$html$Html$button,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('delete'),
-								$elm$html$Html$Events$onClick(
-								$author$project$Main$DeleteTodo(todo.id))
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('✖')
-							]))
+						$author$project$Main$viewDeleteTodo(todo)
 					]))
 			]));
 };
@@ -10738,4 +10778,4 @@ var $author$project$Main$view = function (model) {
 var $author$project$Main$main = $elm$browser$Browser$document(
 	{init: $author$project$Main$init, subscriptions: $author$project$Main$subscriptions, update: $author$project$Main$update, view: $author$project$Main$view});
 _Platform_export({'Main':{'init':$author$project$Main$main(
-	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"Main.Msg","aliases":{"Main.ID":{"args":[],"type":"Basics.Int"}},"unions":{"Main.Msg":{"args":[],"tags":{"NoOp":[],"InputTodo":["String.String"],"AddTodo":[],"DeleteTodo":["Main.ID"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"String.String":{"args":[],"tags":{"String":[]}}}}})}});}(this));
+	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"Main.Msg","aliases":{"Main.ID":{"args":[],"type":"Basics.Int"}},"unions":{"Main.Msg":{"args":[],"tags":{"NoOp":[],"InputTodo":["String.String"],"AddTodo":[],"DeleteTodo":["Main.ID"],"DoneTodo":["Main.ID"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"String.String":{"args":[],"tags":{"String":[]}}}}})}});}(this));
