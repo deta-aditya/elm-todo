@@ -113,9 +113,69 @@ ul li .actions .edit {
   color: rgb(8, 93, 204);
 }
 
-ul li.editable input[type="text"] {
+ul li .todo-input {
   font-size: 16px;
   border: none;
   width: 100%;
   background-color: none;
+}
+
+ul li.add {
+  border-style: dashed;
+  border-color: #666;
+  padding: 0;
+}
+
+ul li.add:hover {
+  border-color: rgb(255, 72, 0);
+  box-shadow: 1px 2px 3px 2px rgb(0,0,0,0.1);
+}
+
+ul li.add .add-btn {
+  width: 100%;
+  text-align: left;
+  font-size: 16px;
+  background-color: transparent;
+  border: none;
+  padding: 20px;
+  color: #666;
+  cursor: pointer;
+}
+
+ul li.add .add-btn:hover {
+  color: rgb(255, 72, 0);
+}
+
+ul li.add .add-form {
+  padding: 20px;
+}
+
+.add-form .todo-input {
+  margin-bottom: 20px;
+}
+
+.add-form button {
+  padding: 8px 12px;
+  margin-right: 5px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.add-form button.save {
+  background: linear-gradient(rgb(255, 118, 64), rgb(255, 72, 0));
+  color: white;
+  border: none;
+}
+
+.add-form button.save:hover {
+  opacity: 0.8;
+}
+
+.add-form button.cancel {
+  background-color: white;
+  border: 1px solid #ccc;
+}
+
+.add-form button.cancel:hover {
+  background-color: #eee;
 }

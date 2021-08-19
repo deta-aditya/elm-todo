@@ -17,14 +17,32 @@ main =
 
 type alias Model = 
   { todos: List Todo
-  , input: String 
-  , edit: Maybe EditPayload
+  , mode: Mode
   }
+
+type Mode
+  = View
+  | Add String
+  | Edit EditPayload
 
 type alias EditPayload =
   { todo: Todo
   , input: String
   }
+
+isEditMode : Model -> Bool
+isEditMode model =
+  case model.mode of
+    Edit _ -> True
+    _ -> False
+
+getEdit : (EditPayload -> a) -> a -> Mode -> a
+getEdit f default mode =
+  case mode of
+    Edit payload ->
+      f payload
+    _ ->
+      default
 
 type alias Todo =
   { id: ID
@@ -48,21 +66,21 @@ init _ =
       , Todo 1 "Create a full webapp with Elm" False
       , Todo 2 "Finish reading Sapiens book" False
       ]
-      ""
-      Nothing
+      (Add "")
   , Cmd.none
   )
 
 type Msg 
   = NoOp
-  | InputTodo String
-  | AddTodo
   | DeleteTodo ID
   | DoneTodo ID
   | RequestEdit Todo
   | InputEditTodo String
   | FinishEdit
-  | CancelEdit
+  | BackToView
+  | RequestAdd
+  | InputAddTodo String
+  | FinishAdd
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -70,22 +88,19 @@ update msg model =
     NoOp ->
       (model, Cmd.none)
 
-    InputTodo value ->
-      ( { model | input = value }, Cmd.none )
-
-    AddTodo ->
+    FinishAdd ->
       let
-        newTodos = case model.input of 
-          "" -> model.todos
-          _ -> (newTodo model.todos model.input) :: model.todos
+        newTodos = case model.mode of
+          Add value -> (newTodo model.todos value) :: model.todos
+          _ -> model.todos
       in
-        ( { model | todos = newTodos, input = "" }, Cmd.none )
+        ( { model | todos = newTodos, mode = View }, Cmd.none )
 
     DeleteTodo id ->
       let
         newTodos = List.filter (.id >> (/=) id) model.todos
       in
-        ( { model | todos = newTodos, input = "" }, Cmd.none )
+        ( { model | todos = newTodos }, Cmd.none )
 
     DoneTodo id ->
       let
@@ -93,21 +108,22 @@ update msg model =
           (\ todo -> if todo.id == id then { todo | done = True } else todo) 
           model.todos
       in
-        ( { model | todos = newTodos, input = "" }, Cmd.none )
+        ( { model | todos = newTodos }, Cmd.none )
 
     RequestEdit todo ->
-      ( { model | edit = Just (EditPayload todo todo.text) }, Cmd.none )
+      ( { model | mode = Edit (EditPayload todo todo.text) }, Cmd.none )
 
     InputEditTodo value ->
-      let
-        newEdit = Maybe.map (\ old -> { old | input = value } ) model.edit
-      in
-        ( { model | edit = newEdit }, Cmd.none )
+      case model.mode of
+        Edit payload ->
+          ( { model | mode = Edit { payload | input = value } }, Cmd.none )
+        _ ->
+          ( model, Cmd.none )
 
     FinishEdit ->
       let
-        editID = (Maybe.map (.todo >> .id) >> Maybe.withDefault -1) model.edit
-        editValue = (Maybe.map .input >> Maybe.withDefault "") model.edit
+        editID = getEdit (.todo >> .id) -1 model.mode 
+        editValue = getEdit .input "" model.mode 
         newTodos = List.map 
           (\ todo -> 
             if todo.id == editID then 
@@ -116,10 +132,20 @@ update msg model =
               todo 
           ) model.todos
       in
-        ( { model | todos = newTodos, edit = Nothing }, Cmd.none )
+        ( { model | todos = newTodos, mode = View }, Cmd.none )
 
-    CancelEdit ->
-      ( { model | edit = Nothing }, Cmd.none )
+    BackToView ->
+      ( { model | mode = View }, Cmd.none )
+
+    RequestAdd ->
+      ( { model | mode = Add "" }, Cmd.none )
+
+    InputAddTodo value ->
+      case model.mode of
+        Add _ ->
+          ( { model | mode = Add value }, Cmd.none )
+        _ ->
+          ( model, Cmd.none )
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
@@ -131,29 +157,47 @@ view model =
   , body = 
     [ div [ class "container" ] 
       [ h1 [] [ text "Todo List!" ]
-      , div [ class "form" ] 
+      , div [ class "form" ]  
         [ input 
           [ placeholder "Add something to do..."
           , type_ "text"
           , name "input" 
-          , value model.input
           , disabled (isEditMode model)
-          , onInput InputTodo 
           ] [] 
-        , button [ onClick AddTodo, disabled (isEditMode model) ] [ text "Add" ] 
+        , button [ disabled (isEditMode model) ] [ text "Add" ] 
         ]
       , ul [] 
-        ( List.map (\ todo -> 
-          case model.edit of
-            Just payload ->
-              if todo == payload.todo then
-                viewEditTodo payload
-              else
+        ( li [ class "add" ] 
+            [ case model.mode of 
+              Add value ->
+                div [ class "add-form" ]
+                  [ viewTodoInput InputAddTodo value
+                  , div [] 
+                      [ button [ onClick FinishAdd, class "save" ] 
+                          [ text "Save" ]
+                      , button [ onClick BackToView, class "cancel" ] 
+                          [ text "Cancel" ]
+                      ]
+                  ]
+              _ ->
+                button 
+                  [ class "add-btn"
+                  , onClick RequestAdd ] 
+                  [ text "+ Add Todo" ]
+            ]
+          ::
+          ( List.map (\ todo -> 
+            case model.mode of
+              Edit payload ->
+                if todo == payload.todo then
+                  viewEditTodo payload
+                else
+                  viewTodo model todo 
+              _ -> 
                 viewTodo model todo 
-            Nothing -> 
-              viewTodo model todo 
+            ) 
+            model.todos
           ) 
-          model.todos
         )
       ]
     ]
@@ -188,25 +232,24 @@ viewRegularActions model todo =
 viewEditTodo : EditPayload -> Html Msg
 viewEditTodo payload =
   li [ class "editable" ]
-    [ input 
-      [ placeholder "Add something to do..."
-      , type_ "text"
-      , name "input" 
-      , value payload.input
-      , onInput InputEditTodo 
-      ] []
+    [ viewTodoInput InputEditTodo payload.input
     , div [ class "actions" ]
       [ button [ class "done", onClick FinishEdit ] [ text "✔" ]
-      , button [ class "delete", onClick CancelEdit ] [ text "✖" ] 
+      , button [ class "delete", onClick BackToView ] [ text "✖" ] 
       ]
     ]
+
+viewTodoInput : (String -> Msg) -> String -> Html Msg
+viewTodoInput onInputFunc val =
+  input 
+    [ class "todo-input"
+    , placeholder "Write something to do..."
+    , type_ "text"
+    , name "input" 
+    , value val
+    , onInput onInputFunc
+    ] []
 
 viewDeleteTodo : Todo -> Html Msg
 viewDeleteTodo todo =
   button [ class "delete", onClick (DeleteTodo todo.id) ] [ text "✖" ]
-
-isEditMode : Model -> Bool
-isEditMode model =
-  case model.edit of
-    Just _ -> True
-    Nothing -> False
