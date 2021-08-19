@@ -2,9 +2,9 @@ module Main exposing (..)
 
 import Browser
 import Html exposing (..)
-import Html.Attributes exposing (class, placeholder, type_, name, value)
+import Html.Attributes exposing 
+  (class, placeholder, type_, name, value, disabled)
 import Html.Events exposing (onInput, onClick)
-import Html.Attributes exposing (disabled)
 
 main : Program () Model Msg
 main =
@@ -31,6 +31,7 @@ type alias Todo =
   , text: String
   , done: Bool
   }
+
 type alias ID = Int
 
 newTodo : List Todo -> String -> Todo
@@ -49,7 +50,8 @@ init _ =
       ]
       ""
       Nothing
-  , Cmd.none)
+  , Cmd.none
+  )
 
 type Msg 
   = NoOp
@@ -88,7 +90,7 @@ update msg model =
     DoneTodo id ->
       let
         newTodos = List.map 
-          (\todo -> if todo.id == id then { todo | done = True } else todo) 
+          (\ todo -> if todo.id == id then { todo | done = True } else todo) 
           model.todos
       in
         ( { model | todos = newTodos, input = "" }, Cmd.none )
@@ -98,7 +100,7 @@ update msg model =
 
     InputEditTodo value ->
       let
-        newEdit = Maybe.map (\old -> { old | input = value } ) model.edit
+        newEdit = Maybe.map (\ old -> { old | input = value } ) model.edit
       in
         ( { model | edit = newEdit }, Cmd.none )
 
@@ -107,7 +109,7 @@ update msg model =
         editID = (Maybe.map (.todo >> .id) >> Maybe.withDefault -1) model.edit
         editValue = (Maybe.map .input >> Maybe.withDefault "") model.edit
         newTodos = List.map 
-          (\todo -> 
+          (\ todo -> 
             if todo.id == editID then 
               { todo | text = editValue } 
             else 
@@ -136,11 +138,12 @@ view model =
           , name "input" 
           , value model.input
           , disabled (isEditMode model)
-          , onInput InputTodo ] [] 
+          , onInput InputTodo 
+          ] [] 
         , button [ onClick AddTodo, disabled (isEditMode model) ] [ text "Add" ] 
         ]
       , ul [] 
-        (List.map ( \todo -> 
+        ( List.map (\ todo -> 
           case model.edit of
             Just payload ->
               if todo == payload.todo then
@@ -191,7 +194,7 @@ viewEditTodo payload =
       , name "input" 
       , value payload.input
       , onInput InputEditTodo 
-      ] [] 
+      ] []
     , div [ class "actions" ]
       [ button [ class "done", onClick FinishEdit ] [ text "✔" ]
       , button [ class "delete", onClick CancelEdit ] [ text "✖" ] 
