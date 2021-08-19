@@ -3,8 +3,10 @@ module Main exposing (..)
 import Browser
 import Html exposing (..)
 import Html.Attributes exposing 
-  (class, placeholder, type_, name, value, disabled)
+  (class, placeholder, type_, name, value, disabled, id)
 import Html.Events exposing (onInput, onClick)
+import Browser.Dom exposing (focus)
+import Task
 
 main : Program () Model Msg
 main =
@@ -66,7 +68,7 @@ init _ =
       , Todo 1 "Create a full webapp with Elm" False
       , Todo 2 "Finish reading Sapiens book" False
       ]
-      (Add "")
+      View
   , Cmd.none
   )
 
@@ -81,6 +83,7 @@ type Msg
   | RequestAdd
   | InputAddTodo String
   | FinishAdd
+  | FocusOn String
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -111,7 +114,9 @@ update msg model =
         ( { model | todos = newTodos }, Cmd.none )
 
     RequestEdit todo ->
-      ( { model | mode = Edit (EditPayload todo todo.text) }, Cmd.none )
+      update 
+        (FocusOn "todo-input") 
+        { model | mode = Edit (EditPayload todo todo.text) }
 
     InputEditTodo value ->
       case model.mode of
@@ -138,7 +143,7 @@ update msg model =
       ( { model | mode = View }, Cmd.none )
 
     RequestAdd ->
-      ( { model | mode = Add "" }, Cmd.none )
+      update (FocusOn "todo-input") { model | mode = Add "" }
 
     InputAddTodo value ->
       case model.mode of
@@ -146,6 +151,9 @@ update msg model =
           ( { model | mode = Add value }, Cmd.none )
         _ ->
           ( model, Cmd.none )
+
+    FocusOn id ->
+      ( model, Task.attempt (\_ -> NoOp) (focus id) )
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
@@ -159,12 +167,11 @@ view model =
       [ h1 [] [ text "Todo List!" ]
       , div [ class "form" ]  
         [ input 
-          [ placeholder "Add something to do..."
+          [ placeholder "Search..."
           , type_ "text"
           , name "input" 
           , disabled (isEditMode model)
           ] [] 
-        , button [ disabled (isEditMode model) ] [ text "Add" ] 
         ]
       , ul [] 
         ( li [ class "add" ] 
@@ -242,7 +249,8 @@ viewEditTodo payload =
 viewTodoInput : (String -> Msg) -> String -> Html Msg
 viewTodoInput onInputFunc val =
   input 
-    [ class "todo-input"
+    [ id "todo-input"
+    , class "todo-input"
     , placeholder "Write something to do..."
     , type_ "text"
     , name "input" 
