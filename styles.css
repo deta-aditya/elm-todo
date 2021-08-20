@@ -22,20 +22,20 @@ body {
   margin: 0 0 30px;
 }
 
-.form {
+.search-form {
   display: flex;
   margin: 0 0 30px;
 }
 
-.form input[type="text"] {
+.search-form input[type="text"] {
   width: 100%;
   font-size: 16px;
   padding: 10px 15px;
   border: 1px solid #ccc;
-  border-radius: 5px 0 0 5px;
+  border-radius: 5px;
 }
 
-.form button {
+.search-form button {
   padding: 10px 20px;
   font-size: 16px;
   border-radius: 0 5px 5px 0;
@@ -45,12 +45,12 @@ body {
   cursor: pointer;
 }
 
-.form button:disabled {
+.search-form button:disabled {
   cursor: auto;
   opacity: 0.8;
 }
 
-.form button:hover {
+.search-form button:hover {
   opacity: 0.8;
 }
 

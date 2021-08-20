@@ -1,4 +1,4 @@
-module Main exposing (..)
+module Main exposing (main)
 
 import Browser
 import Html exposing (..)
@@ -6,7 +6,12 @@ import Html.Attributes exposing
   (class, placeholder, type_, name, value, disabled, id)
 import Html.Events exposing (onInput, onClick)
 import Browser.Dom exposing (focus)
+import Todo exposing 
+  (Todo, ID, appendText, deleteByID, doneByID, replaceTitleByID, done, title)
 import Task
+
+
+-- MAIN
 
 main : Program () Model Msg
 main =
@@ -16,6 +21,9 @@ main =
     , update = update
     , subscriptions = subscriptions
     }
+
+
+-- MODEL
 
 type alias Model = 
   { todos: List Todo
@@ -28,49 +36,34 @@ type Mode
   | Edit EditPayload
 
 type alias EditPayload =
-  { todo: Todo
+  { id: ID
   , input: String
   }
 
 isEditMode : Model -> Bool
-isEditMode model =
-  case model.mode of
+isEditMode { mode } =
+  case mode of
     Edit _ -> True
     _ -> False
 
-getEdit : (EditPayload -> a) -> a -> Mode -> a
-getEdit f default mode =
-  case mode of
-    Edit payload ->
-      f payload
-    _ ->
-      default
 
-type alias Todo =
-  { id: ID
-  , text: String
-  , done: Bool
-  }
-
-type alias ID = Int
-
-newTodo : List Todo -> String -> Todo
-newTodo todos text =
-  let
-    biggestID = List.foldl max 0 <| List.map .id <| todos
-  in
-    Todo (biggestID + 1) text False
+-- INIT
 
 init : () -> (Model, Cmd Msg)
 init _ =
   ( Model 
-      [ Todo 0 "Experiment with FCIS" False
-      , Todo 1 "Create a full webapp with Elm" False
-      , Todo 2 "Finish reading Sapiens book" False
-      ]
+      (
+        [ "Experiment with FCIS"
+        , "Create a full webapp with Elm"
+        , "Finish reading Sapiens book"
+        ] |> List.foldl (\ t l -> appendText l t) []
+      )
       View
   , Cmd.none
   )
+
+
+-- UPDATE
 
 type Msg 
   = NoOp
@@ -92,52 +85,41 @@ update msg model =
       (model, Cmd.none)
 
     FinishAdd ->
-      let
-        newTodos = case model.mode of
-          Add value -> (newTodo model.todos value) :: model.todos
-          _ -> model.todos
-      in
-        ( { model | todos = newTodos, mode = View }, Cmd.none )
+      case model.mode of
+        Add value ->
+          ( { model | todos = appendText model.todos value
+            , mode = View }, Cmd.none 
+          )
+        _ -> 
+          update NoOp model
 
     DeleteTodo id ->
-      let
-        newTodos = List.filter (.id >> (/=) id) model.todos
-      in
-        ( { model | todos = newTodos }, Cmd.none )
+      ( { model | todos = deleteByID model.todos id }, Cmd.none )
 
     DoneTodo id ->
-      let
-        newTodos = List.map 
-          (\ todo -> if todo.id == id then { todo | done = True } else todo) 
-          model.todos
-      in
-        ( { model | todos = newTodos }, Cmd.none )
+      ( { model | todos = doneByID model.todos id }, Cmd.none )
 
     RequestEdit todo ->
       update 
         (FocusOn "todo-input") 
-        { model | mode = Edit (EditPayload todo todo.text) }
+        { model | mode = Edit ( EditPayload (Todo.id todo) (Todo.title todo) ) }
 
     InputEditTodo value ->
       case model.mode of
         Edit payload ->
           ( { model | mode = Edit { payload | input = value } }, Cmd.none )
         _ ->
-          ( model, Cmd.none )
+          update NoOp model
 
     FinishEdit ->
-      let
-        editID = getEdit (.todo >> .id) -1 model.mode 
-        editValue = getEdit .input "" model.mode 
-        newTodos = List.map 
-          (\ todo -> 
-            if todo.id == editID then 
-              { todo | text = editValue } 
-            else 
-              todo 
-          ) model.todos
-      in
-        ( { model | todos = newTodos, mode = View }, Cmd.none )
+      case model.mode of
+        Edit { input, id } ->
+          let
+            newTodos = replaceTitleByID model.todos input id 
+          in
+            ( { model | mode = View, todos = newTodos }, Cmd.none )
+        _ ->
+          update NoOp model
 
     BackToView ->
       ( { model | mode = View }, Cmd.none )
@@ -153,11 +135,17 @@ update msg model =
           ( model, Cmd.none )
 
     FocusOn id ->
-      ( model, Task.attempt (\_ -> NoOp) (focus id) )
+      ( model, Task.attempt (always NoOp) (focus id) )
+
+
+-- SUB
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
   Sub.none
+
+
+-- VIEW
 
 view : Model -> Browser.Document Msg
 view model =
@@ -165,7 +153,7 @@ view model =
   , body = 
     [ div [ class "container" ] 
       [ h1 [] [ text "Todo List!" ]
-      , div [ class "form" ]  
+      , div [ class "search-form" ]  
         [ input 
           [ placeholder "Search..."
           , type_ "text"
@@ -180,23 +168,24 @@ view model =
                 div [ class "add-form" ]
                   [ viewTodoInput InputAddTodo value
                   , div [] 
-                      [ button [ onClick FinishAdd, class "save" ] 
-                          [ text "Save" ]
-                      , button [ onClick BackToView, class "cancel" ] 
-                          [ text "Cancel" ]
-                      ]
+                    [ button [ onClick FinishAdd, class "save" ] 
+                      [ text "Save" ]
+                    , button [ onClick BackToView, class "cancel" ] 
+                      [ text "Cancel" ]
+                    ]
                   ]
               _ ->
                 button 
                   [ class "add-btn"
-                  , onClick RequestAdd ] 
+                  , onClick RequestAdd 
+                  ] 
                   [ text "+ Add Todo" ]
             ]
           ::
           ( List.map (\ todo -> 
             case model.mode of
               Edit payload ->
-                if todo == payload.todo then
+                if (Todo.id todo) == payload.id then
                   viewEditTodo payload
                 else
                   viewTodo model todo 
@@ -212,15 +201,15 @@ view model =
 
 viewTodo : Model -> Todo -> Html Msg
 viewTodo model todo =
-  if todo.done then
+  if (todo |> done) then
     li [ class "done" ] 
-      [ text todo.text
+      [ text (todo |> title)
       , div [ class "actions" ]
         [ viewDeleteTodo todo ]
       ]
   else
     li [] 
-      [ text todo.text
+      [ text (todo |> title)
       , viewRegularActions model todo
       ]
 
@@ -231,7 +220,11 @@ viewRegularActions model todo =
         []
       else
         [ button [ class "edit", onClick (RequestEdit todo) ] [ text "✎" ]
-        , button [ class "done", onClick (DoneTodo todo.id) ] [ text "✔" ]
+        , button 
+          [ class "done"
+          , onClick (DoneTodo (todo |> Todo.id)) 
+          ] 
+          [ text "✔" ]
         , viewDeleteTodo todo
         ]
     )
@@ -260,4 +253,4 @@ viewTodoInput onInputFunc val =
 
 viewDeleteTodo : Todo -> Html Msg
 viewDeleteTodo todo =
-  button [ class "delete", onClick (DeleteTodo todo.id) ] [ text "✖" ]
+  button [ class "delete", onClick (DeleteTodo (todo |> Todo.id)) ] [ text "✖" ]

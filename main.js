@@ -10540,21 +10540,61 @@ var $author$project$Main$Model = F2(
 	function (todos, mode) {
 		return {mode: mode, todos: todos};
 	});
-var $author$project$Main$Todo = F3(
-	function (id, text, done) {
-		return {done: done, id: id, text: text};
-	});
 var $author$project$Main$View = {$: 'View'};
+var $author$project$Todo$Todo = function (a) {
+	return {$: 'Todo', a: a};
+};
+var $author$project$Todo$id = function (_v0) {
+	var todo = _v0.a;
+	return todo.id;
+};
+var $author$project$Todo$ID = function (a) {
+	return {$: 'ID', a: a};
+};
+var $author$project$Todo$increment = function (_v0) {
+	var val = _v0.a;
+	return $author$project$Todo$ID(val + 1);
+};
+var $author$project$Todo$max = F2(
+	function (_v0, _v1) {
+		var id1 = _v0.a;
+		var id2 = _v1.a;
+		return (_Utils_cmp(id1, id2) > 0) ? $author$project$Todo$ID(id1) : $author$project$Todo$ID(id2);
+	});
+var $author$project$Todo$starter = $author$project$Todo$ID(-1);
+var $author$project$Todo$nextID = function (todos) {
+	return $author$project$Todo$increment(
+		A3(
+			$elm$core$List$foldl,
+			$author$project$Todo$max,
+			$author$project$Todo$starter,
+			A2($elm$core$List$map, $author$project$Todo$id, todos)));
+};
+var $author$project$Todo$appendText = F2(
+	function (todos, text) {
+		return A2(
+			$elm$core$List$cons,
+			$author$project$Todo$Todo(
+				{
+					done: false,
+					id: $author$project$Todo$nextID(todos),
+					title: text
+				}),
+			todos);
+	});
 var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
 		A2(
 			$author$project$Main$Model,
-			_List_fromArray(
-				[
-					A3($author$project$Main$Todo, 0, 'Experiment with FCIS', false),
-					A3($author$project$Main$Todo, 1, 'Create a full webapp with Elm', false),
-					A3($author$project$Main$Todo, 2, 'Finish reading Sapiens book', false)
-				]),
+			A3(
+				$elm$core$List$foldl,
+				F2(
+					function (t, l) {
+						return A2($author$project$Todo$appendText, l, t);
+					}),
+				_List_Nil,
+				_List_fromArray(
+					['Experiment with FCIS', 'Create a full webapp with Elm', 'Finish reading Sapiens book'])),
 			$author$project$Main$View),
 		$elm$core$Platform$Cmd$none);
 };
@@ -10570,8 +10610,8 @@ var $author$project$Main$Edit = function (a) {
 	return {$: 'Edit', a: a};
 };
 var $author$project$Main$EditPayload = F2(
-	function (todo, input) {
-		return {input: input, todo: todo};
+	function (id, input) {
+		return {id: id, input: input};
 	});
 var $author$project$Main$FocusOn = function (a) {
 	return {$: 'FocusOn', a: a};
@@ -10607,30 +10647,52 @@ var $elm$core$List$filter = F2(
 			_List_Nil,
 			list);
 	});
-var $elm$browser$Browser$Dom$focus = _Browser_call('focus');
-var $author$project$Main$getEdit = F3(
-	function (f, _default, mode) {
-		if (mode.$ === 'Edit') {
-			var payload = mode.a;
-			return f(payload);
-		} else {
-			return _default;
-		}
-	});
-var $author$project$Main$newTodo = F2(
-	function (todos, text) {
-		var biggestID = A3(
-			$elm$core$List$foldl,
-			$elm$core$Basics$max,
-			0,
+var $author$project$Todo$deleteByID = F2(
+	function (todos, idv) {
+		return A2(
+			$elm$core$List$filter,
 			A2(
-				$elm$core$List$map,
-				function ($) {
-					return $.id;
-				},
-				todos));
-		return A3($author$project$Main$Todo, biggestID + 1, text, false);
+				$elm$core$Basics$composeR,
+				$author$project$Todo$id,
+				$elm$core$Basics$neq(idv)),
+			todos);
 	});
+var $author$project$Todo$finish = function (_v0) {
+	var todo = _v0.a;
+	return $author$project$Todo$Todo(
+		_Utils_update(
+			todo,
+			{done: true}));
+};
+var $author$project$Todo$doneByID = F2(
+	function (todos, idv) {
+		return A2(
+			$elm$core$List$map,
+			function (todo) {
+				return _Utils_eq(
+					$author$project$Todo$id(todo),
+					idv) ? $author$project$Todo$finish(todo) : todo;
+			},
+			todos);
+	});
+var $elm$browser$Browser$Dom$focus = _Browser_call('focus');
+var $author$project$Todo$replaceTitleByID = F3(
+	function (todos, titlev, idv) {
+		return A2(
+			$elm$core$List$map,
+			function (_v0) {
+				var t = _v0.a;
+				return _Utils_eq(t.id, idv) ? $author$project$Todo$Todo(
+					_Utils_update(
+						t,
+						{title: titlev})) : $author$project$Todo$Todo(t);
+			},
+			todos);
+	});
+var $author$project$Todo$title = function (_v0) {
+	var todo = _v0.a;
+	return todo.title;
+};
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		update:
@@ -10639,53 +10701,41 @@ var $author$project$Main$update = F2(
 				case 'NoOp':
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				case 'FinishAdd':
-					var newTodos = function () {
-						var _v1 = model.mode;
-						if (_v1.$ === 'Add') {
-							var value = _v1.a;
-							return A2(
-								$elm$core$List$cons,
-								A2($author$project$Main$newTodo, model.todos, value),
-								model.todos);
-						} else {
-							return model.todos;
-						}
-					}();
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{mode: $author$project$Main$View, todos: newTodos}),
-						$elm$core$Platform$Cmd$none);
+					var _v1 = model.mode;
+					if (_v1.$ === 'Add') {
+						var value = _v1.a;
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{
+									mode: $author$project$Main$View,
+									todos: A2($author$project$Todo$appendText, model.todos, value)
+								}),
+							$elm$core$Platform$Cmd$none);
+					} else {
+						var $temp$msg = $author$project$Main$NoOp,
+							$temp$model = model;
+						msg = $temp$msg;
+						model = $temp$model;
+						continue update;
+					}
 				case 'DeleteTodo':
 					var id = msg.a;
-					var newTodos = A2(
-						$elm$core$List$filter,
-						A2(
-							$elm$core$Basics$composeR,
-							function ($) {
-								return $.id;
-							},
-							$elm$core$Basics$neq(id)),
-						model.todos);
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{todos: newTodos}),
+							{
+								todos: A2($author$project$Todo$deleteByID, model.todos, id)
+							}),
 						$elm$core$Platform$Cmd$none);
 				case 'DoneTodo':
 					var id = msg.a;
-					var newTodos = A2(
-						$elm$core$List$map,
-						function (todo) {
-							return _Utils_eq(todo.id, id) ? _Utils_update(
-								todo,
-								{done: true}) : todo;
-						},
-						model.todos);
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{todos: newTodos}),
+							{
+								todos: A2($author$project$Todo$doneByID, model.todos, id)
+							}),
 						$elm$core$Platform$Cmd$none);
 				case 'RequestEdit':
 					var todo = msg.a;
@@ -10694,7 +10744,10 @@ var $author$project$Main$update = F2(
 						model,
 						{
 							mode: $author$project$Main$Edit(
-								A2($author$project$Main$EditPayload, todo, todo.text))
+								A2(
+									$author$project$Main$EditPayload,
+									$author$project$Todo$id(todo),
+									$author$project$Todo$title(todo)))
 						});
 					msg = $temp$msg;
 					model = $temp$model;
@@ -10715,41 +10768,30 @@ var $author$project$Main$update = F2(
 								}),
 							$elm$core$Platform$Cmd$none);
 					} else {
-						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+						var $temp$msg = $author$project$Main$NoOp,
+							$temp$model = model;
+						msg = $temp$msg;
+						model = $temp$model;
+						continue update;
 					}
 				case 'FinishEdit':
-					var editValue = A3(
-						$author$project$Main$getEdit,
-						function ($) {
-							return $.input;
-						},
-						'',
-						model.mode);
-					var editID = A3(
-						$author$project$Main$getEdit,
-						A2(
-							$elm$core$Basics$composeR,
-							function ($) {
-								return $.todo;
-							},
-							function ($) {
-								return $.id;
-							}),
-						-1,
-						model.mode);
-					var newTodos = A2(
-						$elm$core$List$map,
-						function (todo) {
-							return _Utils_eq(todo.id, editID) ? _Utils_update(
-								todo,
-								{text: editValue}) : todo;
-						},
-						model.todos);
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{mode: $author$project$Main$View, todos: newTodos}),
-						$elm$core$Platform$Cmd$none);
+					var _v3 = model.mode;
+					if (_v3.$ === 'Edit') {
+						var input = _v3.a.input;
+						var id = _v3.a.id;
+						var newTodos = A3($author$project$Todo$replaceTitleByID, model.todos, input, id);
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{mode: $author$project$Main$View, todos: newTodos}),
+							$elm$core$Platform$Cmd$none);
+					} else {
+						var $temp$msg = $author$project$Main$NoOp,
+							$temp$model = model;
+						msg = $temp$msg;
+						model = $temp$model;
+						continue update;
+					}
 				case 'BackToView':
 					return _Utils_Tuple2(
 						_Utils_update(
@@ -10768,8 +10810,8 @@ var $author$project$Main$update = F2(
 					continue update;
 				case 'InputAddTodo':
 					var value = msg.a;
-					var _v3 = model.mode;
-					if (_v3.$ === 'Add') {
+					var _v4 = model.mode;
+					if (_v4.$ === 'Add') {
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
@@ -10786,9 +10828,7 @@ var $author$project$Main$update = F2(
 						model,
 						A2(
 							$elm$core$Task$attempt,
-							function (_v4) {
-								return $author$project$Main$NoOp;
-							},
+							$elm$core$Basics$always($author$project$Main$NoOp),
 							$elm$browser$Browser$Dom$focus(id)));
 			}
 		}
@@ -10809,9 +10849,9 @@ var $elm$html$Html$Attributes$boolProperty = F2(
 	});
 var $elm$html$Html$Attributes$disabled = $elm$html$Html$Attributes$boolProperty('disabled');
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
-var $author$project$Main$isEditMode = function (model) {
-	var _v0 = model.mode;
-	if (_v0.$ === 'Edit') {
+var $author$project$Main$isEditMode = function (_v0) {
+	var mode = _v0.mode;
+	if (mode.$ === 'Edit') {
 		return true;
 	} else {
 		return false;
@@ -10882,6 +10922,10 @@ var $author$project$Main$viewEditTodo = function (payload) {
 					]))
 			]));
 };
+var $author$project$Todo$done = function (_v0) {
+	var todo = _v0.a;
+	return todo.done;
+};
 var $author$project$Main$DeleteTodo = function (a) {
 	return {$: 'DeleteTodo', a: a};
 };
@@ -10892,7 +10936,8 @@ var $author$project$Main$viewDeleteTodo = function (todo) {
 			[
 				$elm$html$Html$Attributes$class('delete'),
 				$elm$html$Html$Events$onClick(
-				$author$project$Main$DeleteTodo(todo.id))
+				$author$project$Main$DeleteTodo(
+					$author$project$Todo$id(todo)))
 			]),
 		_List_fromArray(
 			[
@@ -10933,7 +10978,8 @@ var $author$project$Main$viewRegularActions = F2(
 						[
 							$elm$html$Html$Attributes$class('done'),
 							$elm$html$Html$Events$onClick(
-							$author$project$Main$DoneTodo(todo.id))
+							$author$project$Main$DoneTodo(
+								$author$project$Todo$id(todo)))
 						]),
 					_List_fromArray(
 						[
@@ -10944,7 +10990,7 @@ var $author$project$Main$viewRegularActions = F2(
 	});
 var $author$project$Main$viewTodo = F2(
 	function (model, todo) {
-		return todo.done ? A2(
+		return $author$project$Todo$done(todo) ? A2(
 			$elm$html$Html$li,
 			_List_fromArray(
 				[
@@ -10952,7 +10998,8 @@ var $author$project$Main$viewTodo = F2(
 				]),
 			_List_fromArray(
 				[
-					$elm$html$Html$text(todo.text),
+					$elm$html$Html$text(
+					$author$project$Todo$title(todo)),
 					A2(
 					$elm$html$Html$div,
 					_List_fromArray(
@@ -10968,7 +11015,8 @@ var $author$project$Main$viewTodo = F2(
 			_List_Nil,
 			_List_fromArray(
 				[
-					$elm$html$Html$text(todo.text),
+					$elm$html$Html$text(
+					$author$project$Todo$title(todo)),
 					A2($author$project$Main$viewRegularActions, model, todo)
 				]));
 	});
@@ -10995,7 +11043,7 @@ var $author$project$Main$view = function (model) {
 						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('form')
+								$elm$html$Html$Attributes$class('search-form')
 							]),
 						_List_fromArray(
 							[
@@ -11087,7 +11135,9 @@ var $author$project$Main$view = function (model) {
 									var _v1 = model.mode;
 									if (_v1.$ === 'Edit') {
 										var payload = _v1.a;
-										return _Utils_eq(todo, payload.todo) ? $author$project$Main$viewEditTodo(payload) : A2($author$project$Main$viewTodo, model, todo);
+										return _Utils_eq(
+											$author$project$Todo$id(todo),
+											payload.id) ? $author$project$Main$viewEditTodo(payload) : A2($author$project$Main$viewTodo, model, todo);
 									} else {
 										return A2($author$project$Main$viewTodo, model, todo);
 									}
@@ -11101,4 +11151,4 @@ var $author$project$Main$view = function (model) {
 var $author$project$Main$main = $elm$browser$Browser$document(
 	{init: $author$project$Main$init, subscriptions: $author$project$Main$subscriptions, update: $author$project$Main$update, view: $author$project$Main$view});
 _Platform_export({'Main':{'init':$author$project$Main$main(
-	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"Main.Msg","aliases":{"Main.ID":{"args":[],"type":"Basics.Int"},"Main.Todo":{"args":[],"type":"{ id : Main.ID, text : String.String, done : Basics.Bool }"}},"unions":{"Main.Msg":{"args":[],"tags":{"NoOp":[],"DeleteTodo":["Main.ID"],"DoneTodo":["Main.ID"],"RequestEdit":["Main.Todo"],"InputEditTodo":["String.String"],"FinishEdit":[],"BackToView":[],"RequestAdd":[],"InputAddTodo":["String.String"],"FinishAdd":[],"FocusOn":["String.String"]}},"Basics.Bool":{"args":[],"tags":{"True":[],"False":[]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"String.String":{"args":[],"tags":{"String":[]}}}}})}});}(this));
+	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"Main.Msg","aliases":{"Todo.Body":{"args":[],"type":"{ id : Todo.ID, title : String.String, done : Basics.Bool }"}},"unions":{"Main.Msg":{"args":[],"tags":{"NoOp":[],"DeleteTodo":["Todo.ID"],"DoneTodo":["Todo.ID"],"RequestEdit":["Todo.Todo"],"InputEditTodo":["String.String"],"FinishEdit":[],"BackToView":[],"RequestAdd":[],"InputAddTodo":["String.String"],"FinishAdd":[],"FocusOn":["String.String"]}},"Todo.ID":{"args":[],"tags":{"ID":["Basics.Int"]}},"String.String":{"args":[],"tags":{"String":[]}},"Todo.Todo":{"args":[],"tags":{"Todo":["Todo.Body"]}},"Basics.Bool":{"args":[],"tags":{"True":[],"False":[]}},"Basics.Int":{"args":[],"tags":{"Int":[]}}}}})}});}(this));
