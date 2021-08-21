@@ -9,6 +9,8 @@ import Browser.Dom exposing (focus)
 import Todo exposing 
   (Todo, ID, appendText, deleteByID, doneByID, replaceTitleByID, done, title)
 import Task
+import String exposing (contains)
+import String exposing (toLower)
 
 
 -- MAIN
@@ -28,6 +30,7 @@ main =
 type alias Model = 
   { todos: List Todo
   , mode: Mode
+  , query: String
   }
 
 type Mode
@@ -46,6 +49,10 @@ isEditMode { mode } =
     Edit _ -> True
     _ -> False
 
+filteredTodos : Model -> List Todo
+filteredTodos { todos, query } =
+  todos |> List.filter ( title >> toLower >> contains (toLower query) )
+
 
 -- INIT
 
@@ -59,6 +66,7 @@ init _ =
         ] |> List.foldl (\ t l -> appendText l t) []
       )
       View
+      ""
   , Cmd.none
   )
 
@@ -77,6 +85,7 @@ type Msg
   | InputAddTodo String
   | FinishAdd
   | FocusOn String
+  | Search String
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -137,6 +146,9 @@ update msg model =
     FocusOn id ->
       ( model, Task.attempt (always NoOp) (focus id) )
 
+    Search query ->
+      ( { model | query = query }, Cmd.none )
+
 
 -- SUB
 
@@ -157,7 +169,9 @@ view model =
         [ input 
           [ placeholder "Search..."
           , type_ "text"
-          , name "input" 
+          , name "input"
+          , onInput Search
+          , value model.query 
           , disabled (isEditMode model)
           ] [] 
         ]
@@ -192,7 +206,7 @@ view model =
               _ -> 
                 viewTodo model todo 
             ) 
-            model.todos
+            ( filteredTodos model )
           ) 
         )
       ]
