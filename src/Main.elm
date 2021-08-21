@@ -3,14 +3,15 @@ module Main exposing (main)
 import Browser
 import Html exposing (..)
 import Html.Attributes exposing 
-  (class, placeholder, type_, name, value, disabled, id)
+  (class, placeholder, type_, name, value, disabled, id, classList)
 import Html.Events exposing (onInput, onClick)
 import Browser.Dom exposing (focus)
 import Todo exposing 
   (Todo, ID, appendText, deleteByID, doneByID, replaceTitleByID, done, title)
+import String exposing (contains, toLower)
+import Filter exposing 
+  (Filter, Category(..), new, unpack, mapQuery, mapCategory, category, query)
 import Task
-import String exposing (contains)
-import String exposing (toLower)
 
 
 -- MAIN
@@ -31,6 +32,7 @@ type alias Model =
   { todos: List Todo
   , mode: Mode
   , query: String
+  , filter: Filter
   }
 
 type Mode
@@ -50,9 +52,18 @@ isEditMode { mode } =
     _ -> False
 
 filteredTodos : Model -> List Todo
-filteredTodos { todos, query } =
-  todos |> List.filter ( title >> toLower >> contains (toLower query) )
-
+filteredTodos { todos, filter } =
+  let
+    (query, category) = unpack filter
+  in
+    todos 
+      |> List.filter ( title >> toLower >> contains (toLower query) )
+      |> List.filter ( \t -> 
+        case category of
+          All -> True
+          Finished -> done t
+          Unfinished -> (done >> not) t
+      )
 
 -- INIT
 
@@ -67,6 +78,7 @@ init _ =
       )
       View
       ""
+      (new "" All)
   , Cmd.none
   )
 
@@ -86,6 +98,7 @@ type Msg
   | FinishAdd
   | FocusOn String
   | Search String
+  | SetFilter Category
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -147,8 +160,10 @@ update msg model =
       ( model, Task.attempt (always NoOp) (focus id) )
 
     Search query ->
-      ( { model | query = query }, Cmd.none )
+      ( { model | filter = mapQuery (always query) model.filter }, Cmd.none )
 
+    SetFilter category ->
+      ( { model | filter = mapCategory (always category) model.filter }, Cmd.none )
 
 -- SUB
 
@@ -171,9 +186,14 @@ view model =
           , type_ "text"
           , name "input"
           , onInput Search
-          , value model.query 
+          , value (query model.filter)
           , disabled (isEditMode model)
           ] [] 
+        ]
+      , div [ class "filters" ]
+        [ viewFilterChip model.filter All "All"
+        , viewFilterChip model.filter Unfinished "Unfinished"
+        , viewFilterChip model.filter Finished "Finished"
         ]
       , ul [] 
         ( li [ class "add" ] 
@@ -212,6 +232,14 @@ view model =
       ]
     ]
   }
+
+viewFilterChip : Filter -> Category -> String -> Html Msg
+viewFilterChip filter activates txt =
+  button 
+    [ onClick (SetFilter activates)
+    , classList [ ("active", (category filter) == activates) ]
+    ] 
+    [ text txt ]
 
 viewTodo : Model -> Todo -> Html Msg
 viewTodo model todo =

@@ -5144,9 +5144,10 @@ var $elm$core$Task$perform = F2(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
 var $elm$browser$Browser$document = _Browser_document;
-var $author$project$Main$Model = F3(
-	function (todos, mode, query) {
-		return {mode: mode, query: query, todos: todos};
+var $author$project$Filter$All = {$: 'All'};
+var $author$project$Main$Model = F4(
+	function (todos, mode, query, filter) {
+		return {filter: filter, mode: mode, query: query, todos: todos};
 	});
 var $author$project$Main$View = {$: 'View'};
 var $author$project$Todo$Todo = function (a) {
@@ -5193,11 +5194,19 @@ var $author$project$Todo$appendText = F2(
 				}),
 			todos);
 	});
+var $author$project$Filter$Filter = F2(
+	function (a, b) {
+		return {$: 'Filter', a: a, b: b};
+	});
+var $author$project$Filter$new = F2(
+	function (q, c) {
+		return A2($author$project$Filter$Filter, q, c);
+	});
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
-		A3(
+		A4(
 			$author$project$Main$Model,
 			A3(
 				$elm$core$List$foldl,
@@ -5209,7 +5218,8 @@ var $author$project$Main$init = function (_v0) {
 				_List_fromArray(
 					['Experiment with FCIS', 'Create a full webapp with Elm', 'Finish reading Sapiens book'])),
 			$author$project$Main$View,
-			''),
+			'',
+			A2($author$project$Filter$new, '', $author$project$Filter$All)),
 		$elm$core$Platform$Cmd$none);
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
@@ -5305,6 +5315,24 @@ var $author$project$Todo$doneByID = F2(
 			todos);
 	});
 var $elm$browser$Browser$Dom$focus = _Browser_call('focus');
+var $author$project$Filter$mapCategory = F2(
+	function (f, _v0) {
+		var q = _v0.a;
+		var c = _v0.b;
+		return A2(
+			$author$project$Filter$Filter,
+			q,
+			f(c));
+	});
+var $author$project$Filter$mapQuery = F2(
+	function (f, _v0) {
+		var q = _v0.a;
+		var c = _v0.b;
+		return A2(
+			$author$project$Filter$Filter,
+			f(q),
+			c);
+	});
 var $author$project$Todo$replaceTitleByID = F3(
 	function (todos, titlev, idv) {
 		return A2(
@@ -5459,18 +5487,36 @@ var $author$project$Main$update = F2(
 							$elm$core$Task$attempt,
 							$elm$core$Basics$always($author$project$Main$NoOp),
 							$elm$browser$Browser$Dom$focus(id)));
-				default:
+				case 'Search':
 					var query = msg.a;
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{query: query}),
+							{
+								filter: A2(
+									$author$project$Filter$mapQuery,
+									$elm$core$Basics$always(query),
+									model.filter)
+							}),
+						$elm$core$Platform$Cmd$none);
+				default:
+					var category = msg.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								filter: A2(
+									$author$project$Filter$mapCategory,
+									$elm$core$Basics$always(category),
+									model.filter)
+							}),
 						$elm$core$Platform$Cmd$none);
 			}
 		}
 	});
 var $author$project$Main$BackToView = {$: 'BackToView'};
 var $author$project$Main$FinishAdd = {$: 'FinishAdd'};
+var $author$project$Filter$Finished = {$: 'Finished'};
 var $author$project$Main$InputAddTodo = function (a) {
 	return {$: 'InputAddTodo', a: a};
 };
@@ -5478,6 +5524,7 @@ var $author$project$Main$RequestAdd = {$: 'RequestAdd'};
 var $author$project$Main$Search = function (a) {
 	return {$: 'Search', a: a};
 };
+var $author$project$Filter$Unfinished = {$: 'Unfinished'};
 var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $elm$html$Html$Attributes$stringProperty = F2(
@@ -5498,21 +5545,46 @@ var $elm$html$Html$Attributes$boolProperty = F2(
 	});
 var $elm$html$Html$Attributes$disabled = $elm$html$Html$Attributes$boolProperty('disabled');
 var $elm$html$Html$div = _VirtualDom_node('div');
+var $author$project$Todo$done = function (_v0) {
+	var todo = _v0.a;
+	return todo.done;
+};
+var $elm$core$Basics$not = _Basics_not;
 var $elm$core$String$toLower = _String_toLower;
+var $author$project$Filter$unpack = function (_v0) {
+	var q = _v0.a;
+	var c = _v0.b;
+	return _Utils_Tuple2(q, c);
+};
 var $author$project$Main$filteredTodos = function (_v0) {
 	var todos = _v0.todos;
-	var query = _v0.query;
+	var filter = _v0.filter;
+	var _v1 = $author$project$Filter$unpack(filter);
+	var query = _v1.a;
+	var category = _v1.b;
 	return A2(
 		$elm$core$List$filter,
+		function (t) {
+			switch (category.$) {
+				case 'All':
+					return true;
+				case 'Finished':
+					return $author$project$Todo$done(t);
+				default:
+					return A2($elm$core$Basics$composeR, $author$project$Todo$done, $elm$core$Basics$not)(t);
+			}
+		},
 		A2(
-			$elm$core$Basics$composeR,
-			$author$project$Todo$title,
+			$elm$core$List$filter,
 			A2(
 				$elm$core$Basics$composeR,
-				$elm$core$String$toLower,
-				$elm$core$String$contains(
-					$elm$core$String$toLower(query)))),
-		todos);
+				$author$project$Todo$title,
+				A2(
+					$elm$core$Basics$composeR,
+					$elm$core$String$toLower,
+					$elm$core$String$contains(
+						$elm$core$String$toLower(query)))),
+			todos));
 };
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$html$Html$input = _VirtualDom_node('input');
@@ -5577,6 +5649,7 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
 };
 var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
+var $author$project$Filter$query = A2($elm$core$Basics$composeR, $author$project$Filter$unpack, $elm$core$Tuple$first);
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
@@ -5646,10 +5719,47 @@ var $author$project$Main$viewEditTodo = function (payload) {
 					]))
 			]));
 };
-var $author$project$Todo$done = function (_v0) {
-	var todo = _v0.a;
-	return todo.done;
+var $author$project$Main$SetFilter = function (a) {
+	return {$: 'SetFilter', a: a};
 };
+var $elm$core$Tuple$second = function (_v0) {
+	var y = _v0.b;
+	return y;
+};
+var $author$project$Filter$category = A2($elm$core$Basics$composeR, $author$project$Filter$unpack, $elm$core$Tuple$second);
+var $elm$html$Html$Attributes$classList = function (classes) {
+	return $elm$html$Html$Attributes$class(
+		A2(
+			$elm$core$String$join,
+			' ',
+			A2(
+				$elm$core$List$map,
+				$elm$core$Tuple$first,
+				A2($elm$core$List$filter, $elm$core$Tuple$second, classes))));
+};
+var $author$project$Main$viewFilterChip = F3(
+	function (filter, activates, txt) {
+		return A2(
+			$elm$html$Html$button,
+			_List_fromArray(
+				[
+					$elm$html$Html$Events$onClick(
+					$author$project$Main$SetFilter(activates)),
+					$elm$html$Html$Attributes$classList(
+					_List_fromArray(
+						[
+							_Utils_Tuple2(
+							'active',
+							_Utils_eq(
+								$author$project$Filter$category(filter),
+								activates))
+						]))
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text(txt)
+				]));
+	});
 var $author$project$Main$DeleteTodo = function (a) {
 	return {$: 'DeleteTodo', a: a};
 };
@@ -5779,11 +5889,24 @@ var $author$project$Main$view = function (model) {
 										$elm$html$Html$Attributes$type_('text'),
 										$elm$html$Html$Attributes$name('input'),
 										$elm$html$Html$Events$onInput($author$project$Main$Search),
-										$elm$html$Html$Attributes$value(model.query),
+										$elm$html$Html$Attributes$value(
+										$author$project$Filter$query(model.filter)),
 										$elm$html$Html$Attributes$disabled(
 										$author$project$Main$isEditMode(model))
 									]),
 								_List_Nil)
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('filters')
+							]),
+						_List_fromArray(
+							[
+								A3($author$project$Main$viewFilterChip, model.filter, $author$project$Filter$All, 'All'),
+								A3($author$project$Main$viewFilterChip, model.filter, $author$project$Filter$Unfinished, 'Unfinished'),
+								A3($author$project$Main$viewFilterChip, model.filter, $author$project$Filter$Finished, 'Finished')
 							])),
 						A2(
 						$elm$html$Html$ul,

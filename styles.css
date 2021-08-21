@@ -24,7 +24,7 @@ body {
 
 .search-form {
   display: flex;
-  margin: 0 0 30px;
+  margin: 0 0 20px;
 }
 
 .search-form input[type="text"] {
@@ -178,4 +178,26 @@ ul li.add .add-form {
 
 .add-form button.cancel:hover {
   background-color: #eee;
+}
+
+.filters {
+  margin-bottom: 20px;
+}
+
+.filters button {
+  padding: 8px 14px;
+  margin-right: 10px;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 50px;
+  cursor: pointer;
+}
+
+.filters button:hover {
+  background-color: #eee;
+}
+
+.filters button.active {
+  border-color:  rgb(255, 72, 0);
+  background-color: rgb(252, 180, 151);
 }
